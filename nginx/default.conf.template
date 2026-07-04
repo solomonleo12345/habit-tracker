@@ -1,0 +1,37 @@
+# Rendered to /etc/nginx/conf.d/default.conf at container start, with ${PORT}
+# substituted from the environment (Cloud Run sets PORT, default 8080).
+server {
+    listen       ${PORT};
+    listen       [::]:${PORT};
+    server_name  _;
+
+    root   /usr/share/nginx/html;
+    index  index.html;
+
+    # Gzip for text assets.
+    gzip on;
+    gzip_types text/plain text/css application/javascript application/json image/svg+xml;
+    gzip_min_length 1024;
+
+    # SPA fallback: unknown routes serve index.html so client-side routing works.
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # Hashed build assets can be cached forever.
+    location /assets/ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+
+    # Never cache the service worker or the HTML shell, so updates roll out.
+    location = /sw.js {
+        add_header Cache-Control "no-cache";
+    }
+    location = /index.html {
+        add_header Cache-Control "no-cache";
+    }
+    location = /manifest.webmanifest {
+        add_header Cache-Control "no-cache";
+    }
+}

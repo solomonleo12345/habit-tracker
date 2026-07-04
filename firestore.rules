@@ -1,0 +1,68 @@
+rules_version = '2';
+
+// Firestore security rules for Habit Tracker.
+//
+// Model:
+//   users/{uid}                    -> { email, approved, createdAt }
+//   users/{uid}/habits/{habitId}   -> per-user habit
+//   users/{uid}/entries/{entryId}  -> per-user entry
+//
+// Principles:
+//   - Default deny (no rule => access denied).
+//   - A user can only ever touch data under their OWN uid.
+//   - Habit/entry access additionally requires the user to be approved.
+//   - The admin (by email) can list users and set the `approved` flag.
+//
+// NOTE: ADMIN_EMAIL is duplicated from src/firebase/config.ts. Keep in sync.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn()
+        && request.auth.token.email == 'admin@example.com';
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    // Is the owner of {uid} an approved user?
+    function ownerApproved(uid) {
+      return exists(/databases/$(database)/documents/users/$(uid))
+        && get(/databases/$(database)/documents/users/$(uid)).data.approved == true;
+    }
+
+    // ---- User profiles ----
+    match /users/{uid} {
+      // Admin can read any profile; a user can read their own.
+      allow get: if isOwner(uid) || isAdmin();
+      allow list: if isAdmin();
+
+      // A user may create only their OWN profile, and only as NOT approved.
+      // The admin may create/seed any profile.
+      allow create: if (isOwner(uid)
+                        && request.resource.data.approved == false
+                        && request.resource.data.email == request.auth.token.email)
+                     || isAdmin();
+
+      // Only the admin may change approval status. A user may not update their
+      // own profile (prevents self-approval).
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ---- Per-user habit data ----
+    match /users/{uid}/habits/{habitId} {
+      allow read, write: if isOwner(uid) && (ownerApproved(uid) || isAdmin());
+    }
+
+    match /users/{uid}/entries/{entryId} {
+      allow read, write: if isOwner(uid) && (ownerApproved(uid) || isAdmin());
+    }
+  }
+}
