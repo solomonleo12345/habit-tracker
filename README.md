@@ -176,8 +176,8 @@ Happy to walk through the architecture, the tested streak engine, or the
 local-first → cloud-sync design.
 
 - 🐙 GitHub: [@solomonleo12345](https://github.com/solomonleo12345)
-- 💼 LinkedIn: _add your LinkedIn URL_
-- 📧 Email: _add your preferred contact email_
+- 💼 LinkedIn: [Solomon Leo](https://www.linkedin.com/in/solomon-leo-2706)
+- 📧 Email: [psolomonleo@gmail.com](mailto:psolomonleo@gmail.com)
 
 ## 📄 License
 
